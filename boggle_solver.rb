@@ -1,7 +1,8 @@
 require 'benchmark'
 require_relative 'node'
 require_relative 'trie'
-DICTIONARY_TRIE = Marshal.load(File.read('/Users/williamzeller/Desktop/dictionaryTree.txt'))
+dictionary_filename = File.dirname(__FILE__) + "/dictionaryTree.txt"
+DICTIONARY_TRIE = Marshal.load(File.read(dictionary_filename))
 
 class Boggle
 
@@ -12,7 +13,7 @@ class Boggle
     @dictionary = dictionary 
   end
 
-  #makes a random board if none is inputted
+  # makes a random board if none is inputted
   def new_board 
     board = Array.new(4){Array.new(4)}
     (0..3).each do |i|
@@ -48,6 +49,7 @@ class Boggle
   # square on the boggle board. It also returns the character associated
   # with each square, which is used in #make_boggle_trie to make 
   # new nodes.  
+
   def get_adj_sqrs(i, j)
     sqrs = []
     xadj = [-1, -1, -1, 0, 0, 1, 1, 1]
@@ -69,7 +71,7 @@ class Boggle
   # the coordinates for every node and check if they are the same as the adjacent
   # square.
 
-  # The method has a few steps:
+  # The method (and its helper functions) has a few steps:
   # 1. make a new trie with the head_node at the position x,y
   # 2. put the head_node into a stack
   # 3. while the stack is not empty:
@@ -89,6 +91,49 @@ class Boggle
   # 4.  when the stack is empty, every path with a word has been traversed and 
   #     we return the array of words.
 
+
+  # helper to remove all visited nodes and prevent backtracking
+  def delete_visited_nodes(new_parent, potl_neighbors)
+    new_parent.ancestors.each do |ancestor|
+      potl_neighbors.each do |child|
+        if ancestor.x == child[0] && ancestor.y == child[1]
+          potl_neighbors.delete(child) 
+        end
+      end
+    end
+  end
+  
+  # helper to add words and add to stack
+  def add_words(prefix, stack, child_node, new_parent, words)
+    look_up = @dictionary.is_prefix_or_word?(prefix)
+    if look_up
+      if prefix.length > 2 && look_up == prefix 
+        words << prefix
+      end
+      new_parent.children[child_node.char] = child_node
+      stack << child_node
+    end
+  end
+
+  # another helper method to make new nodes
+  def make_new_nodes(new_parent, potl_neighbors, words, stack)
+    potl_neighbors.each do |child|
+      child_node = Node.new
+      child_node.char = child[2]
+      child_node.x = child[0]
+      child_node.y = child[1]
+      child_node.ancestors << new_parent 
+      child_node.ancestors += new_parent.ancestors
+
+      prefix = ""
+      child_node.ancestors.each{|node| prefix += node.char}
+      prefix = prefix.reverse
+      prefix += child_node.char 
+
+      add_words(prefix, stack, child_node, new_parent, words)
+    end
+  end
+
   def make_boggle_trie(startx, starty)
     start_node = Node.new
     boggle_trie = Trie.new(start_node)
@@ -101,53 +146,23 @@ class Boggle
     while !stack.empty?  
       new_parent = stack.pop
       potl_neighbors = get_adj_sqrs(new_parent.x, new_parent.y)
-      
-      #first delete coordinates for all adjacent squares that have 
-      #been visited 
-      new_parent.ancestors.each do |ancestor|
-        potl_neighbors.each do |child|
-          if ancestor.x == child[0] && ancestor.y == child[1]
-            potl_neighbors.delete(child) 
-          end
-        end
-      end
-
-      potl_neighbors.each do |child|
-        child_node = Node.new
-        child_node.char = child[2]
-        child_node.x = child[0]
-        child_node.y = child[1]
-        child_node.ancestors << new_parent 
-        child_node.ancestors += new_parent.ancestors
-
-        prefix = ""
-        child_node.ancestors.each{|node| prefix += node.char }
-        prefix = prefix.reverse
-        prefix += child_node.char 
-        look_up = @dictionary.is_prefix_or_word?(prefix)
-
-        if look_up
-          if prefix.length > 2 && look_up == prefix 
-            words << prefix
-          end
-          new_parent.children[child_node.char] = child_node
-          stack << child_node
-        end
-      end
+      delete_visited_nodes(new_parent, potl_neighbors) 
+      make_new_nodes(new_parent, potl_neighbors, words, stack) 
     end
     words
   end
-
 end
 
+all_words = []
 time = Benchmark.measure{
   1000.times do 
     game = Boggle.new
-    game.display
-    print game.get_possible_words.join(", ")
+    all_words += game.get_possible_words
   end
 }
 
+puts all_words.count
+puts all_words.sort_by{|word| word.length}.last
 puts time 
 
 # 11.670000   0.100000  11.770000 ( 11.767499)
