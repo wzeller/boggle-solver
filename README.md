@@ -1,9 +1,9 @@
 boggle-solver
 =============
 
-I used the problem of finding all possible legal words in Boggle to investigate the "trie" data structure in Ruby.
+I used the problem of finding all possible legal words for a particular Boggle board to investigate the "trie" data structure in Ruby.
 
-Currently, if you clone this repo into a folder and run boggle_solver.rb, the code will load an English dictionary into a trie, create and "solve" 1000 Boggle boards, and output the number of words found, the longest word, and the running time for the Boggle-solving part (the dictionary takes around 7 seconds to load).
+Currently, if you clone this repo into a folder and run boggle_solver.rb, the code will load an English dictionary that has already been loaded into a trie, create and "solve" 1000 Boggle boards, and output the number of words found, the longest word, and the running time for the Boggle-solving part (the dictionary takes around 7 seconds to load).
 
 The general description of how I solved this problem is as follows:
 
